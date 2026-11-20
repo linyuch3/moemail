@@ -89,9 +89,9 @@ export function SendDialog({ emailId, fromAddress, onSendSuccess }: SendDialogPr
           <DialogTrigger asChild>
             <TooltipTrigger asChild>
               <Button 
-                variant="ghost" 
+                variant="default" 
                 size="sm"
-                className="h-8 gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                className="h-8 gap-2 rounded-md text-xs transition-colors"
               >
                 <Send className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("title")}</span>
@@ -103,12 +103,12 @@ export function SendDialog({ emailId, fromAddress, onSendSuccess }: SendDialogPr
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <DialogContent>
+      <DialogContent className="gap-0 overflow-hidden rounded-lg p-0 sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogTitle className="border-b bg-muted/40 px-4 py-3 text-lg">{t("title")}</DialogTitle>
           <DialogDescription className="sr-only">{t("description")}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-3 p-4">
           <div className="text-sm text-muted-foreground">
             {t("from")}: {fromAddress}
           </div>
@@ -126,10 +126,11 @@ export function SendDialog({ emailId, fromAddress, onSendSuccess }: SendDialogPr
             value={content}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
             placeholder={t("contentPlaceholder")}
+            className="min-h-64 resize-y text-sm leading-relaxed"
             rows={6}
           />
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t bg-muted/30 px-4 py-3">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
             {tCommon("cancel")}
           </Button>

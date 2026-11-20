@@ -10,7 +10,7 @@
     --card-foreground: 220 13% 7%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 7%;
-    --primary: 262 83% 58%; /* #7C3AED */
+    --primary: 210 65% 40%;
     --primary-foreground: 0 0% 98%;
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 9% 10%;
@@ -22,8 +22,29 @@
     --destructive-foreground: 0 0% 98%;
     --border: 220 13% 91%; /* #E5E7EB */
     --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-    --radius: 0.5rem;
+    --ring: var(--primary);
+    --radius: 0.75rem;
+    --sidebar: 216 20% 96%;
+    --avatar-blue: 210 55% 92%;
+    --avatar-blue-ink: 210 65% 32%;
+    --avatar-green: 155 35% 91%;
+    --avatar-green-ink: 155 45% 27%;
+    --avatar-amber: 38 65% 91%;
+    --avatar-amber-ink: 30 60% 29%;
+    --avatar-rose: 350 45% 93%;
+    --avatar-rose-ink: 350 50% 35%;
+    --mail-paper: 0 0% 100%;
+    --mail-ink: 220 13% 7%;
+    --mail-code: 220 14% 96%;
+    --font-caption: 0.75rem;
+    --font-body: 0.875rem;
+    --font-heading: 0.9375rem;
+    --font-title: 1.25rem;
+    --panel-height: 3rem;
+    --appbar-height: 3.5rem;
+    --space-panel: 0.75rem;
+    --space-reader: 1rem;
+    --mail-body-width: 52.5rem;
   }
 
   .dark {
@@ -33,7 +54,7 @@
     --card-foreground: 220 14% 95%;
     --popover: 222 20% 12%;
     --popover-foreground: 220 14% 95%;
-    --primary: 262 83% 68%;
+    --primary: 210 65% 68%;
     --primary-foreground: 222 20% 9%;
     --secondary: 222 18% 16%;
     --secondary-foreground: 220 14% 95%;
@@ -45,7 +66,19 @@
     --destructive-foreground: 0 0% 98%;
     --border: 222 18% 19%;
     --input: 222 18% 19%;
-    --ring: 262 83% 68%;
+    --ring: var(--primary);
+    --sidebar: 222 20% 10%;
+    --avatar-blue: 210 35% 22%;
+    --avatar-blue-ink: 210 65% 80%;
+    --avatar-green: 155 25% 19%;
+    --avatar-green-ink: 155 40% 76%;
+    --avatar-amber: 38 30% 20%;
+    --avatar-amber-ink: 38 65% 76%;
+    --avatar-rose: 350 25% 23%;
+    --avatar-rose-ink: 350 50% 80%;
+    --mail-paper: 0 0% 100%;
+    --mail-ink: 220 13% 7%;
+    --mail-code: 220 14% 96%;
   }
 }
 
@@ -59,15 +92,15 @@
   body {
     @apply bg-background text-foreground;
     font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 13.5px;
+    font-size: var(--font-body);
     line-height: 1.55;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  h1 { @apply text-[22px] font-semibold tracking-tight; }
-  h2 { @apply text-[15px] font-semibold tracking-tight; }
-  h3 { @apply text-[13px] font-semibold tracking-tight; }
+  h1 { @apply text-xl font-semibold tracking-tight; }
+  h2 { @apply text-lg font-semibold tracking-tight; }
+  h3 { @apply text-sm font-semibold tracking-tight; }
 }
 
 @layer utilities {
@@ -77,32 +110,39 @@
     background-size: 20px 20px;
   }
 
-  .app-shell {
-    @apply bg-background text-foreground;
+  .mail-panel-header {
+    @apply flex shrink-0 items-center justify-between gap-2 border-b;
+    height: var(--panel-height);
+    padding-inline: var(--space-panel);
   }
 
-  .panel {
-    @apply min-h-0 min-w-0 overflow-hidden;
+  .mail-row {
+    @apply relative cursor-pointer outline-none transition-colors duration-150 hover:bg-muted/60 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring;
+    border-left: 3px solid transparent;
+    padding-inline: var(--space-panel);
   }
 
-  .panel-header {
-    @apply flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3;
+  .mail-row[data-selected="true"] {
+    @apply border-l-primary bg-primary/10;
   }
 
-  .panel-title {
-    @apply text-[13px] font-semibold tracking-tight;
+  .mail-row [data-unread="true"] {
+    @apply font-semibold;
   }
 
-  .panel-subtitle {
-    @apply truncate text-[11px] text-muted-foreground;
+  .mail-row [data-unread="false"] {
+    @apply font-normal;
   }
 
-  .hover-row {
-    @apply transition-colors duration-150 hover:bg-muted/70;
+  .mail-row-actions {
+    @apply opacity-100 transition-opacity duration-150 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100;
   }
 
-  .selected-row {
-    @apply bg-muted;
+  /* Existing brand gradient classes are neutralized without changing Logo logic. */
+  .from-primary.to-purple-600.bg-clip-text {
+    background-image: none;
+    color: hsl(var(--foreground));
+    -webkit-text-fill-color: currentColor;
   }
 
   /* Subtle scrollbar */

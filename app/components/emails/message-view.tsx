@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -9,6 +10,8 @@ import { useTheme } from "next-themes"
 import { useCopy } from "@/hooks/use-copy"
 import { useToast } from "@/components/ui/use-toast"
 import { ShareMessageDialog } from "./share-message-dialog"
+import { SenderAvatar } from "./sender-avatar"
+import { translateMail, type MailTranslation } from "./mail-translation"
 
 interface Message {
   id: string
@@ -62,23 +65,34 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
   const t = useTranslations("emails.messageView")
   const tList = useTranslations("emails.list")
   const locale = useLocale()
-  // 目标语言：界面是中文就翻成简中，否则跟随界面语言；中文界面默认翻成简中
-  const targetLang = locale.startsWith("zh") ? "zh-CN" : locale
+  const tWorkspace = useTranslations("workspace")
+  const targetLang = locale
   const [message, setMessage] = useState<Message | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("html")
   const [copied, setCopied] = useState(false)
   const [translating, setTranslating] = useState(false)
-  const [translatedSubject, setTranslatedSubject] = useState<string | null>(null)
-  const [translatedContent, setTranslatedContent] = useState<string | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const { theme } = useTheme()
+  const [translation, setTranslation] = useState<MailTranslation | null>(null)
+  const [showingTranslation, setShowingTranslation] = useState(false)
+  const [progress, setProgress] = useState({ completed: 0, total: 0 })
+  const [srcDoc, setSrcDoc] = useState("")
+  const translationController = useRef<AbortController | null>(null)
+  const loadSequence = useRef(0)
+  const { resolvedTheme } = useTheme()
   const { toast } = useToast()
   const { copyToClipboard } = useCopy()
-  const showingTranslation = translatedContent !== null || translatedSubject !== null
+  const translatedSubject = showingTranslation ? translation?.subject : null
+  const translatedContent = showingTranslation ? translation?.content : null
+  const displayHtml = showingTranslation ? translation?.html : message?.html
 
   useEffect(() => {
+    const sequence = ++loadSequence.current
+    const controller = new AbortController()
+    translationController.current?.abort()
+    setTranslating(false)
+    setShowingTranslation(false)
+    setTranslation(null)
     const fetchMessage = async () => {
       try {
         setLoading(true)
@@ -86,7 +100,8 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
 
         const url = `/api/emails/${emailId}/${messageId}${messageType === 'sent' ? '?type=sent' : ''}`
 
-        const response = await fetch(url)
+        const response = await fetch(url, { signal: controller.signal })
+        if (sequence !== loadSequence.current) return
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -101,13 +116,11 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
         }
 
         const data = await response.json() as { message: Message }
+        if (sequence !== loadSequence.current) return
         setMessage(data.message)
-        setTranslatedSubject(null)
-        setTranslatedContent(null)
-        if (!data.message.html) {
-          setViewMode("text")
-        }
+        setViewMode(data.message.html ? "html" : "text")
       } catch (error) {
+        if (controller.signal.aborted || sequence !== loadSequence.current) return
         const errorMessage = t("networkError")
         setError(errorMessage)
         toast({
@@ -117,110 +130,91 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
         })
         console.error("Failed to fetch message:", error)
       } finally {
-        setLoading(false)
+        if (sequence === loadSequence.current) setLoading(false)
       }
     }
 
     fetchMessage()
+    return () => {
+      controller.abort()
+      translationController.current?.abort()
+    }
   }, [emailId, messageId, messageType, toast, t, tList])
 
   const code = extractVerificationCode(message)
 
-  const updateIframeContent = () => {
-    if (viewMode === "html" && message?.html && iframeRef.current) {
-      const iframe = iframeRef.current
-      const doc = iframe.contentDocument || iframe.contentWindow?.document
-
-      if (doc) {
-        doc.open()
-        doc.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <base target="_blank">
-              <style>
-                html, body {
-                  margin: 0;
-                  padding: 0;
-                  min-height: 100%;
-                  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-                  font-size: 13.5px;
-                  line-height: 1.6;
-                  color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
-                  background: ${theme === 'dark' ? '#171a21' : '#ffffff'};
-                  word-break: break-word;
-                }
-                body { padding: 16px; }
-                img { max-width: 100%; height: auto; }
-                a { color: #7C3AED; }
-                table { max-width: 100%; }
-              </style>
-            </head>
-            <body>${message.html}</body>
-          </html>
-        `)
-        doc.close()
-      }
-    }
-  }
-
-  // 监听主题变化和内容变化
   useEffect(() => {
-    updateIframeContent()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [message?.html, viewMode, theme])
-
-  // HTML 转纯文本：翻译接口只吃文本，标签/样式先剥掉
-  const htmlToText = (html: string) => {
-    if (typeof document === "undefined") return html
-    const div = document.createElement("div")
-    div.innerHTML = html
-    div.querySelectorAll("script, style").forEach(el => el.remove())
-    const text = div.textContent || div.innerText || ""
-    return text.replace(/\n{3,}/g, "\n\n").trim()
-  }
-
-  const translateText = async (text: string): Promise<string> => {
-    const response = await fetch("/api/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, targetLang })
-    })
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({})) as { error?: string }
-      throw new Error(data.error || t("translateFailed"))
+    if (!displayHtml) {
+      setSrcDoc("")
+      return
     }
-    const data = await response.json() as { translatedText: string }
-    return data.translatedText
-  }
+    const parsedDocument = new DOMParser().parseFromString(displayHtml, "text/html")
+    parsedDocument.querySelectorAll("base,script").forEach(element => element.remove())
+    const base = parsedDocument.createElement("base")
+    base.target = "_blank"
+    parsedDocument.head.insertBefore(base, parsedDocument.head.firstChild)
+    const tokens = getComputedStyle(window.document.documentElement)
+    const color = (name: string) => `hsl(${tokens.getPropertyValue(name).trim()})`
+    const style = parsedDocument.createElement("style")
+    // HTML 邮件作为独立“纸张”保留原始背景/前景，不做局部反色。
+    // 无自带颜色时使用成对的 mail-paper/mail-ink；暗色外壳不会污染邮件。
+    // 基底置于邮件 CSS 之前，让发件人的显式排版和颜色继续生效。
+    style.textContent = `
+      :root { color-scheme: light; }
+      html { margin: 0; padding: 0; background: ${color("--mail-paper")}; }
+      body {
+        margin: 0; padding: 16px; min-height: 100%;
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: ${tokens.getPropertyValue("--font-body").trim()};
+        line-height: 1.6; color: ${color("--mail-ink")};
+        background: ${color("--mail-paper")}; overflow-wrap: anywhere;
+      }
+      img { max-width: 100%; height: auto; }
+      a { color: ${color("--primary")}; text-decoration: underline; }
+      p { margin: 0 0 1em; }
+      pre { overflow: auto; white-space: pre-wrap; padding: 12px; background: ${color("--mail-code")}; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+      code { font-size: .95em; }
+      table { max-width: 100%; border-collapse: collapse; }
+      th, td { vertical-align: top; }
+      blockquote { margin: 16px 0; padding-left: 16px; border-left: 3px solid ${color("--border")}; }
+    `
+    parsedDocument.head.insertBefore(style, parsedDocument.head.firstChild)
+    setSrcDoc(`<!DOCTYPE html>${parsedDocument.documentElement.outerHTML}`)
+  }, [displayHtml, resolvedTheme])
 
-  // 一键翻成中文：标题 + 正文一起翻；再点一次切回原文
   const handleTranslate = async () => {
     if (!message || translating) return
     if (showingTranslation) {
-      setTranslatedSubject(null)
-      setTranslatedContent(null)
+      setShowingTranslation(false)
       return
     }
+    if (translation && !translation.failedChunks && !translation.truncated) {
+      setShowingTranslation(true)
+      return
+    }
+    const controller = new AbortController()
+    translationController.current?.abort()
+    translationController.current = controller
     setTranslating(true)
+    setProgress({ completed: 0, total: 0 })
     try {
-      const bodyText = viewMode === "html" && message.html
-        ? htmlToText(message.html)
-        : (message.content || (message.html ? htmlToText(message.html) : ""))
-      const [subject, content] = await Promise.all([
-        message.subject ? translateText(message.subject) : Promise.resolve(""),
-        bodyText ? translateText(bodyText) : Promise.resolve(""),
-      ])
-      setTranslatedSubject(message.subject ? subject : null)
-      setTranslatedContent(bodyText ? content : null)
+      const result = await translateMail(message, `${emailId}/${messageType}/${messageId}`, targetLang, controller.signal,
+        (completed, total) => {
+          if (!controller.signal.aborted) setProgress({ completed, total })
+        })
+      if (controller.signal.aborted) return
+      setTranslation(result)
+      setShowingTranslation(true)
     } catch (error) {
+      if (controller.signal.aborted) return
       toast({
         title: tList("error"),
         description: error instanceof Error ? error.message : t("translateFailed"),
         variant: "destructive"
       })
     } finally {
-      setTranslating(false)
+      if (!controller.signal.aborted) setTranslating(false)
     }
   }
 
@@ -237,7 +231,7 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 py-16">
         <Loader2 className="size-5 animate-spin text-primary/70" />
-        <span className="text-[12px] text-muted-foreground">{t("loading")}</span>
+        <span className="text-xs text-muted-foreground">{t("loading")}</span>
       </div>
     )
   }
@@ -248,11 +242,11 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
         <div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
           <AlertCircle className="size-5" />
         </div>
-        <p className="max-w-[280px] text-[12px] leading-relaxed text-destructive">{error}</p>
+        <p className="max-w-[280px] text-xs leading-relaxed text-destructive">{error}</p>
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs"
+          className="h-10 text-xs lg:h-7"
           onClick={() => window.location.reload()}
         >
           {t("retry")}
@@ -264,18 +258,31 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
   if (!message) return null
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 space-y-3 border-b px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-snug tracking-tight">
+    <div className="mx-auto flex h-full w-full min-w-0 max-w-mail-body flex-col overflow-hidden">
+      <div className="min-w-0 shrink-0 space-y-4 border-b p-4">
+        <div className="flex min-w-0 flex-col items-start justify-between gap-2 sm:flex-row">
+          <h3 className="min-w-0 max-w-full flex-1 whitespace-normal text-xl font-semibold leading-snug tracking-tight [overflow-wrap:anywhere]">
             {translatedSubject ?? message.subject}
           </h3>
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-0.5 [&_button]:min-h-10 [&_button]:min-w-10 lg:[&_button]:min-h-0 lg:[&_button]:min-w-0">
+            {message.html && message.content && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                aria-label={viewMode === "html" ? t("textFormat") : t("htmlFormat")}
+                title={viewMode === "html" ? t("textFormat") : t("htmlFormat")}
+                onClick={() => setViewMode(mode => mode === "html" ? "text" : "html")}
+              >
+                {viewMode === "html" ? "HTML" : "TXT"}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               className={cn("h-7 w-7", showingTranslation ? "text-primary" : "text-muted-foreground")}
-              title={showingTranslation ? t("showOriginal") : t("translate")}
+              aria-label={showingTranslation ? t("showOriginal") : tWorkspace("translate")}
+              title={showingTranslation ? t("showOriginal") : tWorkspace("translate")}
               disabled={translating}
               onClick={handleTranslate}
             >
@@ -295,17 +302,17 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
         </div>
 
         {code && (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border-l-2 border-primary bg-primary/10 px-3 py-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 {t("codeLabel")}
               </p>
-              <p className="font-mono text-[18px] font-semibold tracking-[0.2em] text-primary">{code}</p>
+              <p className="font-mono text-xl font-semibold tabular-nums tracking-widest">{code}</p>
             </div>
             <Button
               variant="outline"
               size="sm"
-              className="h-7 shrink-0 gap-1.5 text-xs"
+              className="h-auto min-h-10 max-w-full shrink-0 gap-1.5 whitespace-normal text-xs lg:h-7 lg:min-h-0"
               onClick={handleCopyCode}
             >
               {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
@@ -314,73 +321,55 @@ export function MessageView({ emailId, messageId, messageType = 'received' }: Me
           </div>
         )}
 
-        <div className="grid gap-1 text-[12px]">
-          {message.from_address && (
-            <div className="flex gap-2">
-              <span className="w-10 shrink-0 text-muted-foreground">{t("from")}</span>
-              <span className="min-w-0 break-all text-foreground/80">{message.from_address}</span>
+        <div className="flex items-start gap-3">
+          <SenderAvatar address={message.from_address || message.to_address || ""} />
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="min-w-0 max-w-full break-all text-sm font-semibold">
+                {message.from_address || "—"}
+              </span>
+              <time className="min-w-0 max-w-full whitespace-normal text-xs tabular-nums text-muted-foreground [overflow-wrap:anywhere]">
+                {new Date(message.sent_at || message.received_at || 0).toLocaleString(locale)}
+              </time>
             </div>
-          )}
-          {message.to_address && (
-            <div className="flex gap-2">
-              <span className="w-10 shrink-0 text-muted-foreground">{t("to")}</span>
-              <span className="min-w-0 break-all text-foreground/80">{message.to_address}</span>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <span className="w-10 shrink-0 text-muted-foreground">{t("time")}</span>
-            <span className="tabular-nums text-foreground/80">
-              {new Date(message.sent_at || message.received_at || 0).toLocaleString()}
-            </span>
+            {message.to_address && (
+              <p className="break-all text-xs text-muted-foreground">
+                {t("to")} · {message.to_address}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {message.html && message.content && (
-        <div className="flex shrink-0 items-center justify-end border-b px-4 py-1.5">
-          <div className="flex items-center gap-0.5 rounded-md border p-0.5">
-            {(["html", "text"] as ViewMode[]).map(mode => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setViewMode(mode)}
-                className={cn(
-                  "rounded px-2 py-0.5 text-[11px] font-medium transition-colors duration-150",
-                  viewMode === mode
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {mode === "html" ? t("htmlFormat") : t("textFormat")}
-              </button>
-            ))}
-          </div>
+      {translating && (
+        <div role="status" aria-live="polite" className="flex min-w-0 shrink-0 items-center gap-2 border-b bg-primary/10 px-4 py-2 text-xs [overflow-wrap:anywhere]">
+          <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+          {tWorkspace("progress", progress)}
+        </div>
+      )}
+      {showingTranslation && translation && (
+        <div role="status" className="min-w-0 shrink-0 space-y-1 border-b bg-primary/10 px-4 py-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+          <p>{t("translatedHint")}</p>
+          {translation.failedChunks > 0 && <p>{tWorkspace("partial", { count: translation.failedChunks })}</p>}
+          {translation.truncated && <p>{tWorkspace("truncated", { count: translation.processedChars })}</p>}
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-auto">
-        {translating && !showingTranslation ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 py-16">
-            <Loader2 className="size-5 animate-spin text-primary/70" />
-            <span className="text-[12px] text-muted-foreground">{t("translating")}</span>
-          </div>
-        ) : translatedContent !== null ? (
-          <div className="p-4">
-            <p className="mb-2 rounded-md bg-primary/5 px-2 py-1 text-[11px] text-muted-foreground">
-              {t("translatedHint")}
-            </p>
-            <div className="whitespace-pre-wrap text-[13px] leading-relaxed">{translatedContent}</div>
-          </div>
-        ) : viewMode === "html" && message.html ? (
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-auto">
+        {viewMode === "html" && displayHtml ? (
           <iframe
-            ref={iframeRef}
+            title={translatedSubject || message.subject || t("htmlFormat")}
+            srcDoc={srcDoc}
             className="absolute inset-0 h-full w-full border-0 bg-transparent"
             sandbox="allow-same-origin allow-popups"
           />
         ) : (
-          <div className="whitespace-pre-wrap p-4 text-[13px] leading-relaxed">{message.content}</div>
+          <div className="min-w-0 max-w-full whitespace-pre-wrap p-4 text-sm leading-relaxed [overflow-wrap:anywhere]">
+            {translatedContent ?? message.content}
+          </div>
         )}
       </div>
     </div>
   )
 }
+

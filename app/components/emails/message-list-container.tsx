@@ -30,11 +30,11 @@ export function MessageListContainer({ email, onMessageSelect, selectedMessageId
   // 收件箱 / 已发送切换，直接嵌入消息列表头部
   const tabs = (
     <SlidingTabsList>
-      <SlidingTabsTrigger value="received" className="h-7 gap-1.5 text-[12px]">
+      <SlidingTabsTrigger value="received" className="h-7 gap-1.5 text-xs">
         <Inbox className="size-3.5" />
         {t("received")}
       </SlidingTabsTrigger>
-      <SlidingTabsTrigger value="sent" className="h-7 gap-1.5 text-[12px]">
+      <SlidingTabsTrigger value="sent" className="h-7 gap-1.5 text-xs">
         <Send className="size-3.5" />
         {t("sent")}
       </SlidingTabsTrigger>

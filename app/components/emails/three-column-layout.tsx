@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, type ReactNode } from "react"
@@ -22,7 +23,7 @@ function EmptyState({ icon, title }: { icon: ReactNode; title: string }) {
       <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
         {icon}
       </div>
-      <p className="max-w-[220px] text-[13px] leading-relaxed text-muted-foreground">{title}</p>
+      <p className="max-w-[220px] text-sm leading-relaxed text-muted-foreground">{title}</p>
     </div>
   )
 }
@@ -36,7 +37,7 @@ export function ThreeColumnLayout() {
   const { copyToClipboard } = useCopy()
   const { canSend: canSendEmails } = useSendPermission()
 
-  const headerClass = "flex h-11 shrink-0 items-center gap-2 border-b px-3"
+  const headerClass = "mail-panel-header"
 
   // 移动端视图逻辑
   const mobileView = selectedMessageId ? "message" : selectedEmail ? "emails" : "list"
@@ -63,14 +64,14 @@ export function ThreeColumnLayout() {
           {selectedEmail ? (
             <>
               <div className="flex min-w-0 items-center gap-1">
-                <span className="truncate text-[13px] font-semibold tracking-tight">
+                <span className="truncate text-sm font-semibold tracking-tight">
                   {selectedEmail.address}
                 </span>
                 <button
                   type="button"
                   onClick={copyEmailAddress}
                   aria-label="copy address"
-                  className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:size-auto"
                 >
                   <Copy className="size-3.5" />
                 </button>
@@ -84,7 +85,7 @@ export function ThreeColumnLayout() {
               )}
             </>
           ) : (
-            <span className="truncate text-[13px] font-semibold tracking-tight">{t("messageContent")}</span>
+            <span className="truncate text-sm font-semibold tracking-tight">{t("messageContent")}</span>
           )}
         </div>
       </div>
@@ -104,10 +105,10 @@ export function ThreeColumnLayout() {
   )
 
   return (
-    <div className="flex h-full min-h-0 flex-col pt-16 pb-4">
+    <div className="flex h-full min-h-0 flex-col">
       {/* 桌面端三栏布局 */}
-      <div className="hidden min-h-0 flex-1 divide-x overflow-hidden rounded-xl border bg-card shadow-sm lg:flex">
-        <aside className="flex w-[260px] shrink-0 flex-col overflow-hidden xl:w-[288px]">
+      <div className="hidden min-h-0 flex-1 divide-x divide-border overflow-hidden bg-card lg:flex">
+        <aside className="flex w-[240px] shrink-0 flex-col overflow-hidden bg-sidebar xl:w-[260px]">
           <EmailList
             onEmailSelect={(email) => {
               setSelectedEmail(email)
@@ -117,7 +118,7 @@ export function ThreeColumnLayout() {
           />
         </aside>
 
-        <section className="flex w-[340px] shrink-0 flex-col overflow-hidden xl:w-[400px]">
+        <section className="flex w-[340px] shrink-0 flex-col overflow-hidden xl:w-[380px]">
           {renderMessageColumn()}
         </section>
 
@@ -138,7 +139,7 @@ export function ThreeColumnLayout() {
       </div>
 
       {/* 移动端单栏布局 */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card lg:hidden">
         {mobileView === "list" && (
           <EmailList
             onEmailSelect={(email) => {
@@ -154,7 +155,7 @@ export function ThreeColumnLayout() {
             <button
               type="button"
               onClick={() => setSelectedEmail(null)}
-              className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex min-h-10 shrink-0 items-center rounded-md px-2 py-2 whitespace-nowrap text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {t("backToEmailList")}
             </button>
@@ -167,11 +168,11 @@ export function ThreeColumnLayout() {
               <button
                 type="button"
                 onClick={() => setSelectedMessageId(null)}
-                className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex min-h-10 shrink-0 items-center rounded-md px-2 py-2 whitespace-nowrap text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 {t("backToMessageList")}
               </button>
-              <span className="truncate text-[13px] font-medium">{t("messageContent")}</span>
+              <span className="truncate text-sm font-medium">{t("messageContent")}</span>
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
               <MessageView
@@ -187,3 +188,4 @@ export function ThreeColumnLayout() {
     </div>
   )
 }
+

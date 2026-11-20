@@ -25,14 +25,12 @@ export default async function MoePage({
   const hasPermission = await checkPermission(PERMISSIONS.MANAGE_EMAIL)
 
   return (
-    <div className="h-screen bg-muted/40">
-      <div className="container mx-auto h-full px-4 lg:px-8 max-w-[1600px]">
-        <Header />
-        <main className="h-full">
-          <ThreeColumnLayout />
-          {!hasPermission && <NoPermissionDialog />}
-        </main>
-      </div>
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background">
+      <Header application />
+      <main className="min-h-0 flex-1 overflow-hidden">
+        <ThreeColumnLayout />
+        {!hasPermission && <NoPermissionDialog />}
+      </main>
     </div>
   )
 }

@@ -24,6 +24,15 @@ const config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        sidebar: "hsl(var(--sidebar))",
+        "avatar-blue": "hsl(var(--avatar-blue))",
+        "avatar-blue-ink": "hsl(var(--avatar-blue-ink))",
+        "avatar-green": "hsl(var(--avatar-green))",
+        "avatar-green-ink": "hsl(var(--avatar-green-ink))",
+        "avatar-amber": "hsl(var(--avatar-amber))",
+        "avatar-amber-ink": "hsl(var(--avatar-amber-ink))",
+        "avatar-rose": "hsl(var(--avatar-rose))",
+        "avatar-rose-ink": "hsl(var(--avatar-rose-ink))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -52,6 +61,21 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+      },
+      fontSize: {
+        xs: ["var(--font-caption)", { lineHeight: "1rem" }],
+        sm: ["var(--font-body)", { lineHeight: "1.25rem" }],
+        lg: ["var(--font-heading)", { lineHeight: "1.375rem" }],
+        xl: ["var(--font-title)", { lineHeight: "1.75rem" }],
+      },
+      spacing: {
+        3: "var(--space-panel)",
+        4: "var(--space-reader)",
+        panel: "var(--panel-height)",
+        appbar: "var(--appbar-height)",
+      },
+      maxWidth: {
+        "mail-body": "var(--mail-body-width)",
       },
       borderRadius: {
         lg: "var(--radius)",

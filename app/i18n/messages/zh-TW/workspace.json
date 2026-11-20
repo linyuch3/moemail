@@ -1,0 +1,8 @@
+{
+  "search": "搜尋郵件",
+  "searchUnavailable": "郵件內容搜尋尚未開放；請使用信箱欄的地址搜尋",
+  "translate": "翻譯為目前介面語言",
+  "progress": "正在翻譯：{completed} / {total} 段",
+  "partial": "{count} 個片段翻譯失敗，已保留原文",
+  "truncated": "已處理前 {count} 個字元，超出處理上限的內容保留原文"
+}

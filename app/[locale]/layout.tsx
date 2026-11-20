@@ -7,14 +7,17 @@ import { FloatMenu } from "@/components/float-menu"
 import { ThemeProvider } from "@/components/theme/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
-import { zpix } from "../fonts"
 import "../globals.css"
 import { Providers } from "../providers"
 
 export const runtime = "edge"
 
 export const viewport: Viewport = {
-  themeColor: '#826DD9',
+  // 与 CSS --primary 完全相同的 HSL；浏览器 chrome 不支持读取页面变量。
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "hsl(210, 65%, 40%)" },
+    { media: "(prefers-color-scheme: dark)", color: "hsl(210, 65%, 68%)" },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -31,10 +34,11 @@ async function getMessages(locale: Locale) {
     const profile = (await import(`@/i18n/messages/${locale}/profile.json`)).default
     const domains = (await import(`@/i18n/messages/${locale}/domains.json`)).default
     const apiDocs = (await import(`@/i18n/messages/${locale}/api-docs.json`)).default
-    return { common, home, auth, metadata, emails, profile, domains, apiDocs }
+    const workspace = (await import(`@/i18n/messages/${locale}/workspace.json`)).default
+    return { common, home, auth, metadata, emails, profile, domains, apiDocs, workspace }
   } catch (error) {
     console.error(`Failed to load messages for locale ${locale}:`, error)
-    return { common: {}, home: {}, auth: {}, metadata: {}, emails: {}, profile: {}, domains: {}, apiDocs: {} }
+    return { common: {}, home: {}, auth: {}, metadata: {}, emails: {}, profile: {}, domains: {}, apiDocs: {}, workspace: {} }
   }
 }
 
@@ -121,8 +125,7 @@ export default async function LocaleLayout({
       </head>
       <body 
         className={cn(
-          zpix.variable,
-          "font-zpix min-h-screen antialiased",
+          "font-sans min-h-screen antialiased",
           "bg-background text-foreground",
           "transition-colors duration-300"
         )}

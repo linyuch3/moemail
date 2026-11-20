@@ -1,0 +1,8 @@
+{
+  "search": "Search mail",
+  "searchUnavailable": "Message search is not available yet; use address search in the mailbox panel",
+  "translate": "Translate into the interface language",
+  "progress": "Translating: {completed} / {total} sections",
+  "partial": "{count} sections could not be translated and retain their original text",
+  "truncated": "Processed the first {count} characters; content beyond the processing limit retains its original text"
+}

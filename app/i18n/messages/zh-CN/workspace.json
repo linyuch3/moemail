@@ -1,0 +1,8 @@
+{
+  "search": "搜索邮件",
+  "searchUnavailable": "邮件内容搜索尚未开放；请使用邮箱栏的地址搜索",
+  "translate": "翻译为当前界面语言",
+  "progress": "正在翻译：{completed} / {total} 段",
+  "partial": "{count} 个片段翻译失败，已保留原文",
+  "truncated": "已处理前 {count} 个字符，超出处理上限的内容保留原文"
+}

@@ -228,7 +228,7 @@ export function CreateForm({ onEmailCreated, onCancel, showCancel, compact, auto
             value={emailName}
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder={t("namePlaceholder")}
-            className="h-8 flex-1 text-[13px]"
+            className="h-8 flex-1 text-sm"
             autoFocus={autoFocus}
             onKeyDown={(e) => { if (e.key === "Enter") createEmail() }}
           />
@@ -242,7 +242,7 @@ export function CreateForm({ onEmailCreated, onCancel, showCancel, compact, auto
               value={subDomain}
               onChange={(e) => setSubDomain(e.target.value)}
               placeholder={t("subDomainPlaceholder")}
-              className="h-8 pr-8 text-[13px]"
+              className="h-8 pr-8 text-sm"
               disabled={!subdomainEnabledForCurrent}
               onKeyDown={(e) => { if (e.key === "Enter") createEmail() }}
             />
@@ -257,7 +257,7 @@ export function CreateForm({ onEmailCreated, onCancel, showCancel, compact, auto
             </button>
           </div>
           <Select value={currentDomain} onValueChange={setCurrentDomain}>
-            <SelectTrigger className="h-8 w-[132px] shrink-0 text-[13px]">
+            <SelectTrigger className="h-8 w-[132px] shrink-0 text-sm">
               <SelectValue placeholder={t("domainPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
@@ -280,24 +280,24 @@ export function CreateForm({ onEmailCreated, onCancel, showCancel, compact, auto
           </Select>
         </div>
         {!subdomainEnabledForCurrent && (
-          <p className="text-[11px] leading-tight text-muted-foreground">{t("subdomainDisabledHint")}</p>
+          <p className="text-xs leading-tight text-muted-foreground">{t("subdomainDisabledHint")}</p>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <Label className="shrink-0 text-[12px] text-muted-foreground">{t("expiryTime")}</Label>
+        <Label className="shrink-0 text-xs text-muted-foreground">{t("expiryTime")}</Label>
         <RadioGroup value={expiryTime} onValueChange={setExpiryTime} className="flex flex-wrap gap-x-3 gap-y-1">
           {EXPIRY_OPTIONS.map((option, index) => {
             const labels = [t("oneHour"), t("oneDay"), t("threeDays"), t("permanent")]
             return (
               <div key={option.value} className="flex items-center gap-1.5">
                 <RadioGroupItem value={option.value.toString()} id={`inline-${option.value}`} className="h-3.5 w-3.5" />
-                <Label htmlFor={`inline-${option.value}`} className="cursor-pointer text-[12px] font-normal">{labels[index]}</Label>
+                <Label htmlFor={`inline-${option.value}`} className="cursor-pointer text-xs font-normal">{labels[index]}</Label>
               </div>
             )
           })}
         </RadioGroup>
       </div>
-      <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <span className="shrink-0">{t("domain")}:</span>
         {emailName && currentDomain ? (
           <div className="flex min-w-0 items-center gap-1.5">

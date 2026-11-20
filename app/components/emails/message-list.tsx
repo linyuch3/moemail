@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef, type ReactNode } from "react"
@@ -9,6 +10,7 @@ import { useThrottle } from "@/hooks/use-throttle"
 import { EMAIL_CONFIG } from "@/config"
 import { useToast } from "@/components/ui/use-toast"
 import { ShareMessageDialog } from "./share-message-dialog"
+import { SenderAvatar } from "./sender-avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -221,11 +223,11 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
 
   return (
   <>
-    <div className="flex h-full flex-col">
-      <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b px-2">
+    <div className="flex h-full min-w-0 flex-col [&_button]:min-h-10 [&_button]:min-w-10 lg:[&_button]:min-h-0 lg:[&_button]:min-w-0">
+      <div className="mail-panel-header">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {toolbarLeading && <div className="min-w-[120px] flex-1">{toolbarLeading}</div>}
-          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+          {toolbarLeading && <div className="min-w-0 flex-1 lg:min-w-[120px]">{toolbarLeading}</div>}
+          <span className="min-w-0 truncate text-xs tabular-nums text-muted-foreground">
             {total} {t("messageCount")}
           </span>
         </div>
@@ -244,13 +246,13 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
         {loading ? (
           <div className="divide-y divide-border/60">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="px-3 py-2.5">
-                <div className="flex items-center justify-between gap-3">
+              <div key={i} className="flex h-16 items-center gap-3 px-3">
+                <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />
+                <div className="min-w-0 flex-1 space-y-1">
                   <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
-                  <div className="h-2.5 w-12 animate-pulse rounded bg-muted/70" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-full animate-pulse rounded bg-muted/70" />
                 </div>
-                <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-muted" />
-                <div className="mt-2 h-2.5 w-full animate-pulse rounded bg-muted/70" />
               </div>
             ))}
           </div>
@@ -268,6 +270,7 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
                   key={message.id}
                   role="button"
                   tabIndex={0}
+                  data-selected={isSelected}
                   onClick={() => onMessageSelect(message.id, messageType)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -276,25 +279,27 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
                     }
                   }}
                   className={cn(
-                    "group cursor-pointer border-b border-border/60 px-3 py-2.5 outline-none transition-colors duration-150 focus-visible:ring-1 focus-visible:ring-ring",
-                    isSelected ? "bg-muted" : "hover:bg-muted/50"
+                    "mail-row group relative flex h-16 min-h-16 shrink-0 items-center gap-3 border-b border-b-border/60"
                   )}
                 >
+                  <SenderAvatar address={counterpart} />
+                  <div className="min-w-0 flex-1 pr-[84px] lg:pr-0">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-[12px] font-medium text-foreground">
-                      {counterpart || "—"}
+                    <span data-unread="true" className="flex min-w-0 items-center gap-1.5 text-xs text-foreground">
+                      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-primary" />
+                      <span className="truncate">{counterpart || "—"}</span>
                     </span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {formatTimestamp(message.received_at || message.sent_at || 0)}
                     </span>
                   </div>
 
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="truncate text-[13px] font-semibold leading-snug tracking-tight">
+                  <div className="flex h-5 items-center justify-between gap-2">
+                    <span data-unread="true" className="truncate text-sm leading-tight tracking-tight">
                       {message.subject || t("noSubject")}
                     </span>
                     <span
-                      className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                      className="mail-row-actions absolute right-3 top-1/2 flex -translate-y-1/2 shrink-0 items-center gap-0.5 lg:static lg:translate-y-0"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <ShareMessageDialog
@@ -327,15 +332,16 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
                   </div>
 
                   {preview && (
-                    <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+                    <p className="block truncate text-xs leading-tight text-muted-foreground">
                       {preview}
                     </p>
                   )}
+                  </div>
                 </div>
               )
             })}
             {loadingMore && (
-              <div className="py-2 text-center text-[11px] text-muted-foreground">{t("loadingMore")}</div>
+              <div className="py-2 text-center text-xs text-muted-foreground">{t("loadingMore")}</div>
             )}
           </div>
         ) : (
@@ -343,7 +349,7 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
             <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               {messageType === 'sent' ? <Send className="size-4" /> : <Inbox className="size-4" />}
             </div>
-            <p className="text-[12px] text-muted-foreground">{t("noMessages")}</p>
+            <p className="text-xs text-muted-foreground">{t("noMessages")}</p>
           </div>
         )}
       </div>
@@ -370,3 +376,4 @@ export function MessageList({ email, messageType, onMessageSelect, selectedMessa
   </>
   )
 }
+

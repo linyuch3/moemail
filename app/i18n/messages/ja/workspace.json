@@ -1,0 +1,8 @@
+{
+  "search": "メールを検索",
+  "searchUnavailable": "本文検索は未対応です。メールボックス欄のアドレス検索をご利用ください",
+  "translate": "現在の表示言語に翻訳",
+  "progress": "翻訳中：{completed} / {total} セクション",
+  "partial": "{count} 個の部分を翻訳できなかったため、原文を保持しています",
+  "truncated": "先頭の {count} 文字を処理しました。処理上限を超えた部分は原文を保持しています"
+}

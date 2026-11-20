@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -395,27 +396,27 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
 
   return (
     <>
-      <div className="flex h-full flex-col">
-        <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b px-3">
-          <div className="flex min-w-0 items-center gap-2">
+      <div className="flex h-full min-w-0 flex-col [&_button]:min-h-10 [&_button]:min-w-10 lg:[&_button]:min-h-0 lg:[&_button]:min-w-0">
+        <div className="mail-panel-header">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
             {selectMode ? (
               <button
                 type="button"
                 onClick={toggleSelectAll}
                 title={t("selectAll")}
-                className="flex shrink-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                className="flex min-w-0 items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
               >
                 {selectedIds.size >= filteredEmails.length && filteredEmails.length > 0 ? (
                   <CheckSquare className="size-4" />
                 ) : (
                   <Square className="size-4" />
                 )}
-                <span className="text-[12px]">{t("selectedCount", { count: selectedIds.size })}</span>
+                <span className="truncate text-xs">{t("selectedCount", { count: selectedIds.size })}</span>
               </button>
             ) : (
               <>
-                <span className="truncate text-[13px] font-semibold tracking-tight">{tLayout("myEmails")}</span>
-                <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                <span className="truncate text-sm font-semibold tracking-tight">{tLayout("myEmails")}</span>
+                <span className="min-w-0 truncate rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
                   {role === ROLES.EMPEROR
                     ? t("emailCountUnlimited", { count: total })
                     : t("emailCount", { count: total, max: config?.maxEmails || EMAIL_CONFIG.MAX_ACTIVE_EMAILS })}
@@ -429,7 +430,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="h-7 text-[12px]"
+                  className="h-7 text-xs"
                   disabled={selectedIds.size === 0 || batchDeleting}
                   onClick={handleBatchDelete}
                 >
@@ -480,25 +481,25 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
         </div>
 
         {showCreate && !selectMode && (
-          <div className="shrink-0 border-b bg-muted/30 px-2.5 py-1">
+          <div className="shrink-0 border-b bg-muted/30 px-3 py-2">
             <CreateForm compact autoFocus onEmailCreated={handleCreated} onCancel={() => setShowCreate(false)} showCancel />
           </div>
         )}
 
-        <div className="shrink-0 border-b p-2">
+        <div className="shrink-0 border-b p-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="h-8 pl-7 pr-7 text-[13px]"
+              className="h-10 pl-7 pr-12 text-sm lg:h-8 lg:pr-7"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => handleSearchChange("")}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                className="absolute right-0 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded p-0.5 text-muted-foreground hover:text-foreground lg:right-1.5 lg:size-auto"
                 title={tCommon("cancel")}
               >
                 <X className="size-3.5" />
@@ -506,17 +507,17 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
             )}
           </div>
           {search.trim() && (
-            <p className="px-0.5 pt-1.5 text-[11px] leading-tight text-muted-foreground">
+            <p className="pt-2 text-xs leading-tight text-muted-foreground">
               {searching ? t("searching") : t("searchResultHint")}
             </p>
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto p-1.5" onScroll={handleScroll}>
+        <div className="min-h-0 flex-1 overflow-auto" onScroll={handleScroll}>
           {loading ? (
-            <div className="space-y-0.5">
+            <div className="divide-y divide-border/60">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-2.5 rounded-md px-2 py-2">
+                <div key={i} className="flex h-16 items-center gap-3 px-3">
                   <div className="size-7 shrink-0 animate-pulse rounded-md bg-muted" />
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
@@ -526,7 +527,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
               ))}
             </div>
           ) : filteredEmails.length > 0 ? (
-            <div className="space-y-0.5">
+            <div className="divide-y divide-border/60">
               {filteredEmails.map(email => {
                 const { local, domain } = splitAddress(email.address)
                 const isSelected = selectedEmailId === email.id
@@ -540,6 +541,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
                     key={email.id}
                     role="button"
                     tabIndex={0}
+                    data-selected={isSelected && !selectMode}
                     onClick={() => {
                       if (selectMode) toggleSelect(email.id)
                       else onEmailSelect(email)
@@ -552,22 +554,21 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
                       }
                     }}
                     className={cn(
-                      "group flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 outline-none transition-colors duration-150 focus-visible:ring-1 focus-visible:ring-ring",
-                      isSelected && !selectMode ? "bg-muted" : "hover:bg-muted/60",
+                      "mail-row group flex h-16 min-h-16 shrink-0 items-center gap-3",
                       deleting && "opacity-50"
                     )}
                   >
                     {selectMode ? (
-                      <span className="flex size-7 shrink-0 items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox checked={checked} onChange={() => toggleSelect(email.id)} />
+                      <span className="flex size-10 shrink-0 items-center justify-center lg:size-7" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox className="size-10 lg:size-4" checked={checked} onChange={() => toggleSelect(email.id)} />
                       </span>
                     ) : (
                       <span
                         className={cn(
-                          "flex size-7 shrink-0 items-center justify-center rounded-md border transition-colors duration-150",
+                          "flex size-7 shrink-0 items-center justify-center transition-colors duration-150",
                           isSelected
-                            ? "border-transparent bg-primary text-primary-foreground"
-                            : "border-transparent bg-muted/60 text-muted-foreground"
+                            ? "text-primary"
+                            : "text-muted-foreground"
                         )}
                       >
                         <Mail className="size-3.5" />
@@ -575,11 +576,11 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
                     )}
 
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1 text-[13px] font-medium leading-tight">
+                      <span className="flex items-center gap-1 text-sm font-medium leading-tight">
                         <span className="block truncate">{local}</span>
                         {locked && <Lock className="size-3 shrink-0 text-amber-500" />}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
+                      <span className="mt-1 block truncate text-xs leading-tight text-muted-foreground">
                         {domain ? `@${domain} · ` : ""}
                         {isPermanent ? t("permanent") : new Date(email.expiresAt).toLocaleDateString()}
                       </span>
@@ -587,7 +588,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
 
                     {!selectMode && (
                       <span
-                        className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                        className="mail-row-actions flex shrink-0 items-center gap-0.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <ShareDialog emailId={email.id} emailAddress={email.address} />
@@ -626,7 +627,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
                 )
               })}
               {loadingMore && (
-                <div className="py-2 text-center text-[11px] text-muted-foreground">{t("loadingMore")}</div>
+                <div className="py-2 text-center text-xs text-muted-foreground">{t("loadingMore")}</div>
               )}
             </div>
           ) : (
@@ -634,7 +635,7 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
               <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Inbox className="size-4" />
               </div>
-              <p className="max-w-[200px] text-[12px] leading-relaxed text-muted-foreground">
+              <p className="max-w-[200px] text-xs leading-relaxed text-muted-foreground">
                 {search ? t("searchNoResult") : t("noEmails")}
               </p>
               {!search && !showCreate && (
@@ -649,3 +650,4 @@ export function EmailList({ onEmailSelect, selectedEmailId }: EmailListProps) {
     </>
   )
 }
+
