@@ -43,39 +43,74 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
   const cacheKey = JSON.stringify([endpoint, target, input])
   const hit = cache.get(cacheKey)
   if (hit && hit.expires > Date.now()) return leading + hit.value + trailing
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
-  try {
-    // TRANSLATE_API_URL 接受 MyMemory GET 协议兼容的认证网关。
-    const url = new URL(endpoint)
-    url.searchParams.set("q", input)
-    url.searchParams.set("langpair", `auto|${target}`)
-    url.searchParams.set("key", key)
-    if (contact) url.searchParams.set("de", contact)
-    const response = await fetch(url, { signal: controller.signal, cache: "no-store" })
-    if (!response.ok) throw new Error(`upstream ${response.status}`)
-    const data = await response.json() as {
-      responseData?: { translatedText?: string }
-      responseStatus?: number | string
-      responseDetails?: string
+  const requestTranslation = async (google: boolean): Promise<string> => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+    try {
+      const url = new URL(google ? "https://translate.googleapis.com/translate_a/single" : endpoint || "https://api.mymemory.translated.net/get")
+      url.searchParams.set("q", input)
+      if (google) {
+        url.searchParams.set("client", "gtx")
+        url.searchParams.set("sl", "auto")
+        url.searchParams.set("tl", target)
+        url.searchParams.set("dt", "t")
+      } else {
+        url.searchParams.set("langpair", `auto|${target}`)
+        if (endpoint) {
+          url.searchParams.set("key", key)
+          if (contact) url.searchParams.set("de", contact)
+        }
+      }
+      const response = await fetch(url, { signal: controller.signal, cache: "no-store" })
+      if (google ? response.status !== 200 : !response.ok) throw new Error(`upstream ${response.status}`)
+      const data: unknown = await response.json()
+      let translated: string
+      if (google) {
+        if (!Array.isArray(data) || !Array.isArray(data[0])) throw new Error("invalid upstream translation")
+        translated = data[0].map((segment: unknown) => {
+          if (!Array.isArray(segment) || typeof segment[0] !== "string") {
+            throw new Error("invalid upstream translation")
+          }
+          return segment[0]
+        }).join("")
+        if (!translated.trim()) throw new Error("invalid upstream translation")
+      } else {
+        const result = data as {
+          responseData?: { translatedText?: string }
+          responseStatus?: number | string
+          responseDetails?: string
+        }
+        const value = result?.responseData?.translatedText
+        if (typeof value !== "string" || !value.trim() ||
+            (result.responseStatus !== undefined && Number(result.responseStatus) !== 200) ||
+            /MYMEMORY WARNING|QUERY LENGTH|QUOTA|EXCEEDED|USED ALL AVAILABLE|NEXT AVAILABLE/i.test(`${value} ${result.responseDetails || ""}`)) {
+          throw new Error("invalid upstream translation")
+        }
+        translated = value
+      }
+      const expected = input.match(/__MOEMAIL_\d+__/g) || []
+      const actual = translated.match(/__MOEMAIL_\d+__/g) || []
+      if (expected.length !== actual.length || expected.some(token => actual.filter(value => value === token).length !== 1)) {
+        throw new Error("translation damaged protected values")
+      }
+      return translated
+    } finally {
+      clearTimeout(timer)
     }
-    const translated = data.responseData?.translatedText
-    if (typeof translated !== "string" || !translated.trim() ||
-        (data.responseStatus !== undefined && Number(data.responseStatus) !== 200) ||
-        /MYMEMORY WARNING|QUERY LENGTH|QUOTA|EXCEEDED|USED ALL AVAILABLE|NEXT AVAILABLE/i.test(`${translated} ${data.responseDetails || ""}`)) {
-      throw new Error("invalid upstream translation")
-    }
-    const expected = input.match(/__MOEMAIL_\d+__/g) || []
-    const actual = translated.match(/__MOEMAIL_\d+__/g) || []
-    if (expected.length !== actual.length || expected.some(token => actual.filter(value => value === token).length !== 1)) {
-      throw new Error("translation damaged protected values")
-    }
-    if (cache.size >= 128) cache.delete(cache.keys().next().value as string)
-    cache.set(cacheKey, { value: translated, expires: Date.now() + 300000 })
-    return leading + translated + trailing
-  } finally {
-    clearTimeout(timer)
   }
+  let translated: string
+  if (endpoint) {
+    translated = await requestTranslation(false)
+  } else {
+    try {
+      translated = await requestTranslation(true)
+    } catch {
+      translated = await requestTranslation(false)
+    }
+  }
+  if (cache.size >= 128) cache.delete(cache.keys().next().value as string)
+  cache.set(cacheKey, { value: translated, expires: Date.now() + 300000 })
+  return leading + translated + trailing
 }
 
 export async function POST(request: Request) {
@@ -89,13 +124,9 @@ export async function POST(request: Request) {
   if (typeof text !== "string" || !text.trim() || typeof targetLang !== "string" || !languages.has(targetLang)) {
     return NextResponse.json({ error: "Invalid text or targetLang" }, { status: 400 })
   }
-  const endpoint = process.env.TRANSLATE_API_URL || "https://api.mymemory.translated.net/get"
+  const endpoint = process.env.TRANSLATE_API_URL || ""
   const key = process.env.TRANSLATE_API_KEY || ""
   const contact = process.env.TRANSLATE_CONTACT_EMAIL || ""
-  // 不使用伪造 de 或共享 IP 匿名额度；配置缺失必须明确失败。
-  if (!key || (!process.env.TRANSLATE_API_URL && !contact)) {
-    return NextResponse.json({ error: "Translation credentials are not configured" }, { status: 503 })
-  }
   const input = text.slice(0, MAX_TEXT_LENGTH).replace(/[\uD800-\uDBFF]$/u, "")
   const protectedValues: string[] = []
   const protectedText = input.replace(/__MOEMAIL_\d+__|https?:\/\/[^\s<>"']+|[\w.+-]+@[\w.-]+\.[a-z]{2,}|\d(?:[\d -]*\d)?/gi, value => {
