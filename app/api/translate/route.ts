@@ -133,13 +133,13 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
 }
 
 export async function POST(request: Request) {
-  let payload: { text?: unknown; targetLang?: unknown }
+  let payload: { text?: unknown; targetLang?: unknown; debug?: boolean }
   try {
     payload = await request.json()
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
-  const { text, targetLang = "zh-CN" } = payload
+  const { text, targetLang = "zh-CN", debug } = payload
   if (typeof text !== "string" || !text.trim() || typeof targetLang !== "string" || !languages.has(targetLang)) {
     return NextResponse.json({ error: "Invalid text or targetLang" }, { status: 400 })
   }
@@ -156,6 +156,7 @@ export async function POST(request: Request) {
   })
   const chunks = splitIntoChunks(protectedText)
   let failedChunks = 0
+  const debugErrors: string[] = []
   const out = new Array<string>(chunks.length)
   let next = 0
   await Promise.all(Array.from({ length: Math.min(3, chunks.length) }, async () => {
@@ -167,12 +168,13 @@ export async function POST(request: Request) {
         try {
           out[index] = await translateChunk(chunk, targetLang, endpoint, key, contact, hasCustomEndpoint)
           break
-        } catch {
+        } catch (error) {
+          if (debug === true && debugErrors.length < 6) debugErrors.push((error instanceof Error ? error.message : String(error)).slice(0, 200))
           if (attempt === 1) failedChunks++
         }
       }
     }
   }))
   const translatedText = out.join("").replace(/__MOEMAIL_(\d+)__/g, (_, index: string) => protectedValues[Number(index)]) + text.slice(input.length)
-  return NextResponse.json({ translatedText, failedChunks, processedChars: input.length, totalChars: text.length, truncated: input.length < text.length })
+  return NextResponse.json({ translatedText, failedChunks, processedChars: input.length, totalChars: text.length, truncated: input.length < text.length, ...(debug === true ? { debugErrors } : {}) })
 }
