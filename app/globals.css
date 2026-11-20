@@ -138,13 +138,6 @@
     @apply opacity-100 transition-opacity duration-150 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100;
   }
 
-  /* Existing brand gradient classes are neutralized without changing Logo logic. */
-  .from-primary.to-purple-600.bg-clip-text {
-    background-image: none;
-    color: hsl(var(--foreground));
-    -webkit-text-fill-color: currentColor;
-  }
-
   /* Subtle scrollbar */
   ::-webkit-scrollbar {
     width: 6px;

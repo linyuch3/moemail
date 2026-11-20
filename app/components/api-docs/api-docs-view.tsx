@@ -293,7 +293,7 @@ export function ApiDocsView({ baseUrl, authed }: { baseUrl: string; authed: bool
 
       <div className="mt-4 flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
         <span className="shrink-0 text-[12px] text-muted-foreground">{t("baseUrlLabel")}</span>
-        <code className="min-w-0 flex-1 truncate font-mono text-[12px]">{baseUrl}</code>
+        <code className="min-w-0 flex-1 whitespace-normal break-all font-mono text-[12px] md:truncate md:break-normal">{baseUrl}</code>
       </div>
 
       <section className="mt-4 rounded-lg border bg-card p-4">
@@ -302,7 +302,7 @@ export function ApiDocsView({ baseUrl, authed }: { baseUrl: string; authed: bool
           <h2 className="text-[14px] font-semibold tracking-tight">{t("authTitle")}</h2>
         </div>
         <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{t("authDesc")}</p>
-        <pre className="mt-2 overflow-x-auto rounded-md bg-muted/60 p-3 font-mono text-[12px]">X-API-Key: YOUR_API_KEY</pre>
+        <pre className="mt-2 whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 font-mono text-[12px] md:overflow-x-auto md:whitespace-pre md:break-normal">X-API-Key: YOUR_API_KEY</pre>
       </section>
 
       <section className="mt-4 rounded-lg border bg-card p-4">
@@ -319,8 +319,8 @@ export function ApiDocsView({ baseUrl, authed }: { baseUrl: string; authed: bool
           <section key={ep.key} className="overflow-hidden rounded-lg border bg-card">
             <div className="border-b px-4 py-2.5">
               <div className="flex items-center gap-2">
-                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">{ep.method}</span>
-                <code className="min-w-0 flex-1 truncate font-mono text-[12px]">{ep.path}{ep.query ?? ""}</code>
+                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">{ep.method}</span>
+                <code className="min-w-0 flex-1 whitespace-normal break-all font-mono text-[12px] md:truncate md:break-normal">{ep.path}{ep.query ?? ""}</code>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground" title={t("copyCurl")} onClick={() => handleCopyCurl(ep)}>
                   {curlCopied === ep.key ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
                 </Button>
@@ -328,12 +328,12 @@ export function ApiDocsView({ baseUrl, authed }: { baseUrl: string; authed: bool
               <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{t(`ep.${ep.key}.t`)} — {t(`ep.${ep.key}.d`)}</p>
             </div>
             <div className="bg-muted/30 px-4 py-3">
-              <pre className="overflow-x-auto font-mono text-[12px] leading-relaxed">{curlFor(baseUrl, ep)}</pre>
+              <pre className="whitespace-pre-wrap break-all font-mono text-[12px] leading-relaxed md:overflow-x-auto md:whitespace-pre md:break-normal">{curlFor(baseUrl, ep)}</pre>
             </div>
             {ep.responses.map((r) => (
               <div key={r.status} className="border-t px-4 py-3">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Response {r.status} — {t(r.noteKey)}</p>
-                <pre className="mt-1.5 overflow-x-auto rounded-md bg-muted/60 p-3 font-mono text-[12px] leading-relaxed">{r.body}</pre>
+                <pre className="mt-1.5 whitespace-pre-wrap break-all rounded-md bg-muted/60 p-3 font-mono text-[12px] leading-relaxed md:overflow-x-auto md:whitespace-pre md:break-normal">{r.body}</pre>
               </div>
             ))}
           </section>
