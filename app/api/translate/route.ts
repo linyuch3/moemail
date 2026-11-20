@@ -6,6 +6,7 @@ const MAX_TEXT_LENGTH = 20000
 const CHUNK_BYTES = 450
 const UPSTREAM_TIMEOUT_MS = 15000
 const MYMEMORY_CONTACT_EMAIL = "translate@musin.tech"
+const DEFAULT_TRANSLATE_ENDPOINT = "https://mm.hailizi.de/get?token=f587c5d6deb37827ae67ebcfbe019705"
 const encoder = new TextEncoder()
 const cache = new Map<string, { value: string; expires: number }>()
 const languages = new Set(["zh-CN", "zh-TW", "en", "ja", "ko"])
@@ -49,7 +50,7 @@ function detectSourceLanguage(text: string): string {
   return "en"
 }
 
-async function translateChunk(text: string, target: string, endpoint: string, key: string, contact: string): Promise<string> {
+async function translateChunk(text: string, target: string, endpoint: string, key: string, contact: string, hasCustomEndpoint: boolean): Promise<string> {
   const leading = text.match(/^\s*/u)?.[0] || ""
   const trailing = text.match(/\s*$/u)?.[0] || ""
   const input = text.trim()
@@ -63,7 +64,7 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
     try {
-      const url = new URL(google ? "https://translate.googleapis.com/translate_a/single" : endpoint || "https://api.mymemory.translated.net/get")
+      const url = new URL(google ? "https://translate.googleapis.com/translate_a/single" : endpoint)
       url.searchParams.set("q", input)
       if (google) {
         url.searchParams.set("client", "gtx")
@@ -72,7 +73,7 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
         url.searchParams.set("dt", "t")
       } else {
         url.searchParams.set("langpair", `${source}|${target}`)
-        if (endpoint) {
+        if (hasCustomEndpoint) {
           url.searchParams.set("key", key)
           if (contact) url.searchParams.set("de", contact)
         } else {
@@ -117,7 +118,7 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
     }
   }
   let translated: string
-  if (endpoint) {
+  if (hasCustomEndpoint) {
     translated = await requestTranslation(false)
   } else {
     try {
@@ -142,7 +143,9 @@ export async function POST(request: Request) {
   if (typeof text !== "string" || !text.trim() || typeof targetLang !== "string" || !languages.has(targetLang)) {
     return NextResponse.json({ error: "Invalid text or targetLang" }, { status: 400 })
   }
-  const endpoint = process.env.TRANSLATE_API_URL || ""
+  const configuredEndpoint = process.env.TRANSLATE_API_URL || ""
+  const hasCustomEndpoint = Boolean(configuredEndpoint)
+  const endpoint = configuredEndpoint || DEFAULT_TRANSLATE_ENDPOINT
   const key = process.env.TRANSLATE_API_KEY || ""
   const contact = process.env.TRANSLATE_CONTACT_EMAIL || ""
   const input = text.slice(0, MAX_TEXT_LENGTH).replace(/[\uD800-\uDBFF]$/u, "")
@@ -162,7 +165,7 @@ export async function POST(request: Request) {
       out[index] = chunk
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          out[index] = await translateChunk(chunk, targetLang, endpoint, key, contact)
+          out[index] = await translateChunk(chunk, targetLang, endpoint, key, contact, hasCustomEndpoint)
           break
         } catch {
           if (attempt === 1) failedChunks++
