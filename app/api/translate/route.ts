@@ -5,6 +5,7 @@ export const runtime = "edge"
 const MAX_TEXT_LENGTH = 20000
 const CHUNK_BYTES = 450
 const UPSTREAM_TIMEOUT_MS = 15000
+const MYMEMORY_CONTACT_EMAIL = "translate@musin.tech"
 const encoder = new TextEncoder()
 const cache = new Map<string, { value: string; expires: number }>()
 const languages = new Set(["zh-CN", "zh-TW", "en", "ja", "ko"])
@@ -59,6 +60,8 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
         if (endpoint) {
           url.searchParams.set("key", key)
           if (contact) url.searchParams.set("de", contact)
+        } else {
+          url.searchParams.set("de", MYMEMORY_CONTACT_EMAIL)
         }
       }
       const response = await fetch(url, { signal: controller.signal, cache: "no-store" })
@@ -103,9 +106,9 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
     translated = await requestTranslation(false)
   } else {
     try {
-      translated = await requestTranslation(true)
-    } catch {
       translated = await requestTranslation(false)
+    } catch {
+      translated = await requestTranslation(true)
     }
   }
   if (cache.size >= 128) cache.delete(cache.keys().next().value as string)
