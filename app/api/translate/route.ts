@@ -36,11 +36,26 @@ function splitIntoChunks(text: string): string[] {
   return chunks
 }
 
+function detectSourceLanguage(text: string): string {
+  if (/\p{Script=Hiragana}|\p{Script=Katakana}/u.test(text)) return "ja"
+  if (/\p{Script=Hangul}/u.test(text)) return "ko"
+  if (/\p{Script=Han}/u.test(text)) return "zh-CN"
+  if (/\p{Script=Cyrillic}/u.test(text)) return "ru"
+  if (/\p{Script=Arabic}/u.test(text)) return "ar"
+  if (/\p{Script=Hebrew}/u.test(text)) return "he"
+  if (/\p{Script=Greek}/u.test(text)) return "el"
+  if (/\p{Script=Devanagari}/u.test(text)) return "hi"
+  if (/\p{Script=Thai}/u.test(text)) return "th"
+  return "en"
+}
+
 async function translateChunk(text: string, target: string, endpoint: string, key: string, contact: string): Promise<string> {
   const leading = text.match(/^\s*/u)?.[0] || ""
   const trailing = text.match(/\s*$/u)?.[0] || ""
   const input = text.trim()
   if (!input) return text
+  const source = detectSourceLanguage(input)
+  if (source === target) return text
   const cacheKey = JSON.stringify([endpoint, target, input])
   const hit = cache.get(cacheKey)
   if (hit && hit.expires > Date.now()) return leading + hit.value + trailing
@@ -56,7 +71,7 @@ async function translateChunk(text: string, target: string, endpoint: string, ke
         url.searchParams.set("tl", target)
         url.searchParams.set("dt", "t")
       } else {
-        url.searchParams.set("langpair", `auto|${target}`)
+        url.searchParams.set("langpair", `${source}|${target}`)
         if (endpoint) {
           url.searchParams.set("key", key)
           if (contact) url.searchParams.set("de", contact)
